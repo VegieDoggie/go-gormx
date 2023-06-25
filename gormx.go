@@ -21,50 +21,50 @@ type BaseCondition struct {
 	Desc     *bool   `json:"desc" form:"desc"`         // zh: 是否降序
 }
 
-type GeneralResult struct {
+type MapResult struct {
 	Total int64                    `json:"total"`
 	List  []map[string]interface{} `json:"list"`
 	Sum   map[string]interface{}   `json:"sum"`
 }
 
 type WrapDB struct {
-	Db               *gorm.DB
-	maxPagesize      int
-	allowEmptyString int
-	page             *int
-	pagesize         *int
-	orderKey         *string
-	desc             *bool
+	Db                 *gorm.DB
+	maxPagesize        int
+	isAllowEmptyString bool
+	page               *int
+	pagesize           *int
+	orderKey           *string
+	desc               *bool
 }
 
-func NewWrapDB(db *gorm.DB, maxPagesize, allowEmptyString int) *WrapDB {
-	return &WrapDB{Db: db, maxPagesize: maxPagesize, allowEmptyString: allowEmptyString}
+func NewWrapDB(db *gorm.DB, maxPagesize int, isAllowEmptyString bool) *WrapDB {
+	return &WrapDB{Db: db, maxPagesize: maxPagesize, isAllowEmptyString: isAllowEmptyString}
 }
 
-func (w *WrapDB) QueryWithMap(search map[string]interface{}) (gr GeneralResult, err error) {
-	gr = GeneralResult{List: make([]map[string]interface{}, 0), Sum: make(map[string]interface{}), Total: 0}
+func (w *WrapDB) QueryWithMap(search map[string]interface{}) (r MapResult, err error) {
+	r = MapResult{List: make([]map[string]interface{}, 0), Sum: make(map[string]interface{}), Total: 0}
 	for key, val := range search {
 		w.doWhere(key, val)
 	}
-	if err = w.Db.Count(&gr.Total).Error; err != nil {
+	if err = w.Db.Count(&r.Total).Error; err != nil {
 		return
 	}
-	if gr.Total > 0 {
+	if r.Total > 0 {
 		w.tryOrder().tryPage()
-		if err = w.Db.Scan(&gr.List).Error; err != nil {
+		if err = w.Db.Scan(&r.List).Error; err != nil {
 			return
 		}
 		// [Optional] Underscore field name to UpperCamelCase
-		if len(gr.List) > 0 {
+		if len(r.List) > 0 {
 			list := make([]map[string]interface{}, 0)
-			for _, m := range gr.List {
+			for _, m := range r.List {
 				nm := make(map[string]interface{})
 				for k, v := range m {
 					nm[underscoreToUpperCamelCase(k)] = v
 				}
 				list = append(list, nm)
 			}
-			gr.List = list
+			r.List = list
 		}
 		// page-1 can do sum only
 		if w.page != nil && *w.page == 1 {
@@ -84,7 +84,7 @@ func (w *WrapDB) QueryWithMap(search map[string]interface{}) (gr GeneralResult, 
 					sb.Write([]byte(fmt.Sprintf("sum(`%s`) as `%s`, ", field, field)))
 				}
 				if sb.Len() > 16 {
-					if err = w.Db.Select(sb.String()[:sb.Len()-2]).Scan(gr.Sum).Error; err != nil {
+					if err = w.Db.Select(sb.String()[:sb.Len()-2]).Scan(r.Sum).Error; err != nil {
 						return
 					}
 				}
@@ -205,7 +205,7 @@ func (w *WrapDB) doWhere(key string, val interface{}) *WrapDB {
 	if len(key) == 0 || strings.HasPrefix(key, "#") {
 		return w
 	}
-	if w.allowEmptyString < 1 {
+	if !w.isAllowEmptyString {
 		if ref := reflect.ValueOf(val); ref.Kind() == reflect.String && ref.String() == "" {
 			return w
 		}

@@ -16,6 +16,7 @@
 
 ## 快速开始
 ```sql
+# 样例
 CREATE SCHEMA IF NOT EXISTS gormx_test;
 USE gormx_test;
 

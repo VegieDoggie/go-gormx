@@ -1,4 +1,4 @@
-module github.com/VegetableDoggie/go-gormx
+module github.com/VegetableDoggies/go-gormx
 
 go 1.18
 

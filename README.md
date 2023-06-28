@@ -15,6 +15,9 @@
   - 用途: 后端接口(无论什么系统)
 
 ## 快速开始
+```cmd
+go get github.com/VegetableDoggies/go-gormx@v1.0.0
+```
 ```sql
 # 样例
 CREATE SCHEMA IF NOT EXISTS gormx_test;
